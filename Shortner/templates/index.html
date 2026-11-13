@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyMD - URL Shortener</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #eef2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header-title { text-align: center; margin-top: 40px; margin-bottom: 30px; color: #2c3e50; }
+        .header-title h1 { font-weight: 300; }
+        .header-title p { color: #6c757d; font-size: 14px; }
+        
+        .search-container { max-width: 700px; margin: 0 auto 40px auto; }
+        .search-box { position: relative; }
+        .search-box input { 
+            width: 100%; padding: 20px 50px 20px 20px; border-radius: 12px; border: 1px solid #dee2e6; 
+            font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .search-box button {
+            position: absolute; right: 10px; top: 10px; background: none; border: none;
+            font-size: 24px; color: #adb5bd; cursor: pointer; padding: 10px;
+        }
+        .search-box button:hover { color: #6c757d; }
+        
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); padding: 20px; }
+        .table thead th { border-bottom: 2px solid #f0f0f0; color: #495057; font-weight: 600; font-size: 14px; padding: 15px; }
+        .table tbody td { vertical-align: middle; padding: 15px; font-size: 14px; }
+        
+        .short-link { color: #007bff; text-decoration: none; font-weight: 500; }
+        .short-link:hover { text-decoration: underline; }
+        .original-url { color: #6c757d; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+        
+        .views-badge { color: #28a745; font-weight: 600; }
+        .action-icons a { color: #adb5bd; margin: 0 5px; font-size: 16px; transition: 0.2s; }
+        .action-icons a:hover { color: #007bff; }
+        .delete-icon:hover { color: #dc3545 !important; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header-title">
+            <h1>PyMD · Python Micro Domain</h1>
+            <p>The URL shortener for Python. Developed and maintained by the Python community.</p>
+        </div>
+
+        <!-- Search / Create Form -->
+        <div class="search-container">
+            <form method="POST" action="/" class="search-box">
+                <input type="text" name="original_url" placeholder="https://pypi.org/project/example" required>
+                <button type="submit"><i class="fa-solid fa-scissors"></i></button>
+            </form>
+            <div class="mt-2 text-muted ms-2">
+                <input type="checkbox" id="advanced"> <label for="advanced" class="ms-1">Advanced options</label>
+            </div>
+        </div>
+
+        <!-- Link Management -->
+        <h5 class="mb-3 text-secondary">Link Management</h5>
+        
+        <div class="table-container">
+            <!-- Quota Info (Static for demo) -->
+            <div class="d-flex justify-content-between border-bottom pb-3 mb-3">
+                <span class="text-muted">Total links: <strong>{{ links|length }}</strong></span>
+                <span class="text-muted">Remaining monthly quota: <strong class="text-success">1500 / 1500 links</strong></span>
+            </div>
+
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" class="form-check-input"></th>
+                        <th>Original URL</th>
+                        <th>Created</th>
+                        <th>Short link</th>
+                        <th>Views</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if links %}
+                        {% for link in links %}
+                        <tr>
+                            <td><input type="checkbox" class="form-check-input"></td>
+                            <td>
+                                <span class="original-url" title="{{ link['original_url'] }}">
+                                    <a href="{{ link['original_url'] }}" target="_blank" class="text-decoration-none text-muted">
+                                        {{ link['original_url'] }}
+                                    </a>
+                                </span>
+                            </td>
+                            <td class="text-muted">{{ link['created_at'][:10] }}</td>
+                            <td>
+                                <a href="{{ host_url }}{{ link['short_code'] }}" target="_blank" class="short-link">
+                                    <i class="fa-regular fa-copy me-1" onclick="copyLink('{{ host_url }}{{ link['short_code'] }}', event)"></i> 
+                                    {{ host_url }}{{ link['short_code'] }}
+                                </a>
+                            </td>
+                            <td class="views-badge">{{ link['views'] }}</td>
+                            <td class="text-end action-icons">
+                                <a href="#" title="Analytics"><i class="fa-solid fa-chart-pie"></i></a>
+                                <a href="#" title="QR Code"><i class="fa-solid fa-qrcode"></i></a>
+                                <a href="#" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                <a href="#" class="delete-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No links found. Create your first short link!</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JavaScript for Copy -->
+    <script>
+        function copyLink(text, event) {
+            event.preventDefault();
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Short link copied: " + text);
+            });
+        }
+    </script>
+</body>
+</html>
